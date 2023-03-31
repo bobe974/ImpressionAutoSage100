@@ -9,6 +9,7 @@ using IniParser;
 using IniParser.Model;
 using Objets100cLib;
 using Newtonsoft.Json;
+using System.Data.SqlClient;
 
 namespace Interface_Impression
 {
@@ -16,7 +17,6 @@ namespace Interface_Impression
     {
         //chemin du fichier INI
         public static string inifilePath = Path.Combine(Directory.GetCurrentDirectory(), "config.ini");
-    
 
         static void Main(string[] args)
         {
@@ -25,7 +25,8 @@ namespace Interface_Impression
             string parameter2 = @"C:\Users\Utilisateur\Desktop\Projet 1\STOCKSERVICE\STOCKSERVICE.gcm";
             string autoItPath = "C:\\Program Files (x86)\\AutoIt3\\AutoIt3.exe";
             List<string> listDoc = new List<string>();
-            string json = null;
+            List<string> listModele = new List<string>();
+            string jsonDoc, jsonModel = null;
 
             //lecture du fichier INI pour charger les infos de connexion
             Console.WriteLine(inifilePath);
@@ -101,21 +102,50 @@ namespace Interface_Impression
 
             if (sage.isconnected)
             {
-              
                 //recuperer les bons de livraison
-                  listDoc =  sage.GetBonLivraison();
-                // Convertir la liste en JSON
-                 json = JsonConvert.SerializeObject(listDoc);
-
+                listDoc = sage.GetBonLivraison();
             }
 
+            /************Connnexion bdd pour requete sql***************/
+            SqlManager sqlManager = new SqlManager(sqlServerName, sqlServerDb, sqlServerUser, sqlServerPwd);
+
+            foreach (String docPiece in listDoc)
+            {
+                
+                string req = "SELECT CM_Modele FROM F_COMPTETMODELE " +
+               "WHERE CT_Num = (SELECT DO_Tiers FROM F_DOCENTETE WHERE DO_Piece = '" + docPiece + "' " +
+               "AND DO_Date = (SELECT MAX(DO_Date) FROM F_DOCENTETE WHERE DO_Piece = '" + docPiece + "')" +
+               " AND CM_Type = 3)";
+
+
+                //récupere le modele de document par rapport au numéro du bon de livraison
+                //Console.WriteLine("modele:" + sqlManager.ExecuteSqlQuery(req));
+                listModele.Add(Uri.EscapeDataString(Uri.EscapeDataString(sqlManager.ExecuteSqlQuery(req))));
+                Console.WriteLine($"Modele : {sqlManager.ExecuteSqlQuery(req)}");
+            }
+            sqlManager.CloseConnexion();
+            // Convertir la liste en JSON
+            jsonDoc = JsonConvert.SerializeObject(listDoc);
+            jsonModel = JsonConvert.SerializeObject(listModele);
+            Console.ReadLine();
+
+            //foreach (Dictionary<string, string> d in listPieceModele)
+            //{
+            //    foreach (KeyValuePair<string, string> kvp in dict)
+            //    {
+            //        Console.WriteLine($"Clé : {kvp.Key}, Valeur : {kvp.Value}");
+            //    }
+            //}
+
+            /**********************************************************/
+            Console.ReadLine();
             Console.WriteLine("éxecution du script autoit");
-          
+            Console.WriteLine(paramBaseCial.getName());
+
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.FileName = autoItPath;
             //startInfo.Arguments = "\"" + scriptName + "\" \"" + parameter1 + "\" \"" + parameter2 + "\"";
-            startInfo.Arguments = "\"" + scriptName + "\" \"" + parameter1 + "\" \"" + parameter2 + "\" \"" + json + "\"";
-
+            startInfo.Arguments = "\"" + scriptName + "\" \"" + parameter1 + "\" \"" + parameter2 + "\" \"" + jsonDoc + "\" \"" + jsonModel + "\" \"" + paramBaseCial.getName() + "\"";
 
             Process process = new Process();
             process.StartInfo = startInfo;

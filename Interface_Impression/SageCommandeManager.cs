@@ -14,7 +14,6 @@ namespace Interface_Impression
         private string dbname = null;
         public bool isconnected = false;
 
-
         public SageCommandeManager(ParamDb paramCompta, ParamDb paramCommercial)
         {
             //initialisation et connexion aux bases sage100
@@ -27,7 +26,7 @@ namespace Interface_Impression
                 isconnected = true;
             }
         }
-
+        
         public List<String> GetBonLivraison()
         {
             List<string> listDoc = new List<string>();
@@ -43,7 +42,7 @@ namespace Interface_Impression
                     if(doc.DO_Imprim == false)
                     {
                         Console.WriteLine($"nom {doc.DO_Piece} statut {doc.DO_Imprim}");
-                        listDoc.Add(doc.DO_Piece);                      
+                        listDoc.Add(doc.DO_Piece);                         
                     }          
                 }
                 return listDoc;
