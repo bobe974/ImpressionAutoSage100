@@ -99,6 +99,7 @@ namespace Interface_Impression
             Console.WriteLine("tentative de connexion a la base SAGE...");
 
             SageCommandeManager sage = new SageCommandeManager(paramBaseCompta, paramBaseCial);
+            List<String> listNumDoc = new List<string>();
 
             if (sage.isconnected)
             {
@@ -108,6 +109,30 @@ namespace Interface_Impression
 
             /************Connnexion bdd pour requete sql***************/
             SqlManager sqlManager = new SqlManager(sqlServerName, sqlServerDb, sqlServerUser, sqlServerPwd);
+
+
+            /*****************************************TEST****************************************/
+            //regarder si il y a des documents a imprimé dans la table de donénes
+            if (sqlManager.GetRowCount("sog_impression")!= 0)
+            {
+                //recupere le cbmarque de tout les documents
+                List<object> ListcbMarq = sqlManager.ExecuteQueryToList("select cbMarq from sog_impression");
+   
+                //on recupére le numéros de piece de chaque bon de commande
+               foreach (object cbMarq in ListcbMarq)
+                {                
+                    listNumDoc.Add(sqlManager.ExecuteSqlQuery("select DO_Piece from F_DOCENTETE where cbMarq =" + cbMarq.ToString()));
+                }
+            }
+
+            Console.WriteLine("contenu de la liste listnumDOC:");
+            Console.ReadLine();
+            foreach(string s in listNumDoc)
+            {
+                Console.WriteLine(s);
+            }
+            Console.ReadLine();
+            /*****************************************TEST****************************************/
 
             foreach (String docPiece in listDoc)
             {
