@@ -2,14 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using IniParser;
 using IniParser.Model;
-using Objets100cLib;
 using Newtonsoft.Json;
-using System.Data.SqlClient;
 
 namespace Interface_Impression
 {
@@ -24,8 +19,10 @@ namespace Interface_Impression
             string parameter1 = @"C:\Program Files (x86)\Sage\Gestion commerciale 100c\gecomaes.exe";
             string parameter2 = @"C:\Users\Utilisateur\Desktop\Projet 1\STOCKSERVICE\STOCKSERVICE.gcm";
             string autoItPath = "C:\\Program Files (x86)\\AutoIt3\\AutoIt3.exe";
+           
             List<string> listDoc = new List<string>();
             List<string> listModele = new List<string>();
+            List<object> listCbMarq = new List<object>();
             string jsonDoc, jsonModel = null;
 
             //lecture du fichier INI pour charger les infos de connexion
@@ -58,12 +55,11 @@ namespace Interface_Impression
                 ini.Sections.AddSection("cheminServeur");
                 ini["cheminServeur"].AddKey("Path", "xxxx");
 
-
                 //création du fichier
                 FileIniDataParser fileParser = new FileIniDataParser();
                 fileParser.WriteFile(inifilePath, ini);
             }
-
+           
             Console.ReadLine();
             //Création d'un objet parser pour lire le fichier INI
             var parser = new FileIniDataParser();
@@ -95,76 +91,40 @@ namespace Interface_Impression
             ParamDb paramBaseCompta = new ParamDb(dbComptaPath, dbComptaUser, dbComptaPwd);
             ParamDb paramBaseCial = new ParamDb(dbCialPath, dbCialUser, dbCialPwd);
 
-            //ouverture des bases de données
-            Console.WriteLine("tentative de connexion a la base SAGE...");
-
-            SageCommandeManager sage = new SageCommandeManager(paramBaseCompta, paramBaseCial);
-            List<String> listNumDoc = new List<string>();
-
-            if (sage.isconnected)
-            {
-                //recuperer les bons de livraison
-                listDoc = sage.GetBonLivraison();
-            }
-
             /************Connnexion bdd pour requete sql***************/
             SqlManager sqlManager = new SqlManager(sqlServerName, sqlServerDb, sqlServerUser, sqlServerPwd);
 
-
-            /*****************************************TEST****************************************/
             //regarder si il y a des documents a imprimé dans la table de donénes
             if (sqlManager.GetRowCount("sog_impression")!= 0)
             {
                 //recupere le cbmarque de tout les documents
-                List<object> ListcbMarq = sqlManager.ExecuteQueryToList("select cbMarq from sog_impression");
-   
+                List<object> ListcbMarq = sqlManager.ExecuteQueryToList("select DISTINCT cbMarq from sog_impression");
+
                 //on recupére le numéros de piece de chaque bon de commande
-               foreach (object cbMarq in ListcbMarq)
-                {                
-                    listNumDoc.Add(sqlManager.ExecuteSqlQuery("select DO_Piece from F_DOCENTETE where cbMarq =" + cbMarq.ToString()));
+                foreach (object cbMarq in ListcbMarq)
+                {
+                    listDoc.Add(sqlManager.ExecuteSqlQuery("select DO_Piece from F_DOCENTETE where cbMarq =" + cbMarq.ToString()).ToString());
+                    listCbMarq.Add(cbMarq);
                 }
             }
 
             Console.WriteLine("contenu de la liste listnumDOC:");
+
             Console.ReadLine();
-            foreach(string s in listNumDoc)
+            foreach(string s in listDoc)
             {
                 Console.WriteLine(s);
             }
             Console.ReadLine();
-            /*****************************************TEST****************************************/
+            
+            //sqlManager.CloseConnexion();
 
-            foreach (String docPiece in listDoc)
-            {
-                
-                string req = "SELECT CM_Modele FROM F_COMPTETMODELE " +
-               "WHERE CT_Num = (SELECT DO_Tiers FROM F_DOCENTETE WHERE DO_Piece = '" + docPiece + "' " +
-               "AND DO_Date = (SELECT MAX(DO_Date) FROM F_DOCENTETE WHERE DO_Piece = '" + docPiece + "')" +
-               " AND CM_Type = 3)";
-
-
-                //récupere le modele de document par rapport au numéro du bon de livraison
-                //Console.WriteLine("modele:" + sqlManager.ExecuteSqlQuery(req));
-                listModele.Add(Uri.EscapeDataString(Uri.EscapeDataString(sqlManager.ExecuteSqlQuery(req))));
-                Console.WriteLine($"Modele : {sqlManager.ExecuteSqlQuery(req)}");
-            }
-            sqlManager.CloseConnexion();
             // Convertir la liste en JSON
             jsonDoc = JsonConvert.SerializeObject(listDoc);
             jsonModel = JsonConvert.SerializeObject(listModele);
+      
             Console.ReadLine();
-
-            //foreach (Dictionary<string, string> d in listPieceModele)
-            //{
-            //    foreach (KeyValuePair<string, string> kvp in dict)
-            //    {
-            //        Console.WriteLine($"Clé : {kvp.Key}, Valeur : {kvp.Value}");
-            //    }
-            //}
-
-            /**********************************************************/
-            Console.ReadLine();
-            Console.WriteLine("éxecution du script autoit");
+            Console.WriteLine("Execution du script autoit");
             Console.WriteLine(paramBaseCial.getName());
 
             ProcessStartInfo startInfo = new ProcessStartInfo();
@@ -174,17 +134,50 @@ namespace Interface_Impression
 
             Process process = new Process();
             process.StartInfo = startInfo;
-            process.Start();
+            process.Start(); 
 
             // Attendre que le processus AutoIt se termine
-            process.WaitForExit();
+            process.WaitForExit(); 
 
-            // Tuer le processus AutoIt si le processus C# s'est arrêté
-            if (!process.HasExited)
-            {
-                process.Kill();
+            int exitCode = process.ExitCode; 
+            process.Kill();
+
+            if (exitCode == 1)
+                {
+                Console.WriteLine("La tâche a été effectuée avec succès");
+                Console.WriteLine("******** Vérification que les bons de livraison ont bien été imprimés *********");
+                //vérifie que le bon de livraison est bien passé a l'état imprimé dans sage
+                //
+                int compteur = 0; 
+
+                //parcours des bons de livraison qu'on devait imprimer
+                foreach(object numPiece in listDoc)
+                {
+                    Console.WriteLine($"num piece:  {numPiece}");
+                    //recupere l'état d'impression d'un document
+                    int doImprim = Convert.ToInt32(sqlManager.ExecuteSqlQuery("SELECT \"DO_Imprim\" FROM F_DOCENTETE WHERE \"DO_Piece\" = '" + numPiece + "'"));
+
+                    //string doImprim = sqlManager.ExecuteSqlQuery("select DO_Imprim from F_DOCENTETE WHERE DO_Piece =" + numPiece);
+                    Console.WriteLine($"état d'impression du document {numPiece}: {doImprim}");
+                    // si = 1 le document a été imprimé
+                    if (doImprim.Equals(1))
+                    {
+                        Console.WriteLine($"{numPiece} à été imprimé, supression dans la table...");                                           
+                        //Supprimer la table de bon de livraison
+                        sqlManager.deleteRow("sog_impression", listCbMarq[compteur].ToString());
+                        Console.WriteLine($"la ligne {listCbMarq[compteur].ToString()} a été supprimé");                      
+                    }
+                    compteur++;
+                }               
             }
+            else
+            {
+                Console.WriteLine("La tâche a échoué avec le code de sortie : " + exitCode);
+            }
+
             Console.ReadLine();
+            //fermeture de la base de données
+            sqlManager.CloseConnexion();
         }
     }
 }

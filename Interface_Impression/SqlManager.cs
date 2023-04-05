@@ -35,9 +35,9 @@ namespace Interface_Impression
         /**
          * exécute une requete select et retourne le premier element 
          */
-        public string ExecuteSqlQuery(String query)
+        public object ExecuteSqlQuery(String query)
         {
-            String modele = null;
+            object modele = null;
 
             if (connection != null && connection.State == ConnectionState.Open)
             {
@@ -47,7 +47,7 @@ namespace Interface_Impression
                 {
                     while (reader.Read())
                     {
-                        modele = (string)reader.GetValue(0);
+                        modele = reader.GetValue(0);
                     }
                 }
                 return modele;
@@ -85,6 +85,21 @@ namespace Interface_Impression
                 throw new Exception("La connexion n'est pas ouverte.");
             }
         }
+
+        public void deleteRow(String table, String cbMarq)
+        {
+            if (connection != null && connection.State == ConnectionState.Open)
+            {
+                String query = "DELETE FROM " + table + " WHERE cbMarq = " + cbMarq;
+                SqlCommand command = new SqlCommand(query, connection);
+                command.ExecuteNonQuery(); // Execute la suppression
+            }
+            else
+            {
+                throw new Exception("La connexion n'est pas ouverte.");
+            }
+        }
+
 
         public int GetRowCount(string table)
         {
