@@ -9,6 +9,7 @@ namespace Interface_Impression
     class SqlManager : IDisposable
     {
         SqlConnection connection;
+        Logger log = new Logger();
 
         public SqlManager(string serverName, string database, string username, string pwd)
         {
@@ -18,11 +19,13 @@ namespace Interface_Impression
             try
             {
                 connection.Open();
-                Console.WriteLine("La connexion à la base de données a été établie avec succès.");
+                Console.WriteLine($"La connexion à la base de données {database} a été établie avec succès.");
+                log.WriteToLog($"La connexion à la base de données {database} a été établie avec succès.");
             }
             catch (Exception e)
             {
-                Console.WriteLine("La connexion à la base de données a échoué : " + e.Message);
+                Console.WriteLine($"La connexion à la base de données {database} a échoué : " + e.Message);
+                log.WriteToLog($"La connexion à la base de données {database} a échoué : " + e.Message);
                 Dispose();
             }
         }
@@ -55,6 +58,7 @@ namespace Interface_Impression
             else
             {
                 throw new Exception("La connexion n'est pas ouverte.");
+                log.WriteToLog("impossible d'excuter la requete sql: La connexion n'est pas ouverte.");
             }
         }
 
@@ -83,6 +87,7 @@ namespace Interface_Impression
             else
             {
                 throw new Exception("La connexion n'est pas ouverte.");
+                log.WriteToLog("impossible d'excuter la requete sql: La connexion n'est pas ouverte.");
             }
         }
 
@@ -97,9 +102,9 @@ namespace Interface_Impression
             else
             {
                 throw new Exception("La connexion n'est pas ouverte.");
+                log.WriteToLog("impossible d'excuter la requete sql: La connexion n'est pas ouverte.");
             }
         }
-
 
         public int GetRowCount(string table)
         {
@@ -120,8 +125,6 @@ namespace Interface_Impression
 
             return rowCount;
         }
-
-
 
         public void CloseConnexion()
         {

@@ -5,6 +5,7 @@ using System.IO;
 using IniParser;
 using IniParser.Model;
 using Newtonsoft.Json;
+using System.Diagnostics;
 
 namespace Interface_Impression
 {
@@ -19,7 +20,9 @@ namespace Interface_Impression
             string parameter1 = @"C:\Program Files (x86)\Sage\Gestion commerciale 100c\gecomaes.exe";
             string parameter2 = @"C:\Users\Utilisateur\Desktop\Projet 1\STOCKSERVICE\STOCKSERVICE.gcm";
             string autoItPath = "C:\\Program Files (x86)\\AutoIt3\\AutoIt3.exe";
-           
+
+            //créer le ficheir log
+            Logger logger = new Logger();
             List<string> listDoc = new List<string>();
             List<string> listModele = new List<string>();
             List<object> listCbMarq = new List<object>();
@@ -27,13 +30,15 @@ namespace Interface_Impression
 
             //lecture du fichier INI pour charger les infos de connexion
             Console.WriteLine(inifilePath);
+            logger.WriteToLog("Début du programme");
+          
             if (File.Exists(inifilePath))
             {
                 string[] lines = File.ReadAllLines(inifilePath);
             }
             else
             {
-                Console.WriteLine("Le fichier n'existe pas, création du document...");
+                logger.WriteToLog("Le fichier INI n'existe, création du fichier");
                 IniData ini = new IniData();
                 ini.Sections.AddSection("DatabaseComptaSage");
                 ini["DatabaseComptaSage"].AddKey("Path", "xxxx");
@@ -61,11 +66,13 @@ namespace Interface_Impression
             }
            
             Console.ReadLine();
+
             //Création d'un objet parser pour lire le fichier INI
             var parser = new FileIniDataParser();
 
             // Lecture du fichier INI
             IniData data = parser.ReadFile(inifilePath);
+            logger.WriteToLog("lecture du fichier ini");
             Console.WriteLine("lecture du fichier ini...");
             // Récupération des informations de connexion à partir du fichier INI
             string dbComptaPath = data["DatabaseComptaSage"]["Path"];
@@ -118,13 +125,13 @@ namespace Interface_Impression
             Console.ReadLine();
             
             //sqlManager.CloseConnexion();
-
             // Convertir la liste en JSON
             jsonDoc = JsonConvert.SerializeObject(listDoc);
             jsonModel = JsonConvert.SerializeObject(listModele);
       
             Console.ReadLine();
             Console.WriteLine("Execution du script autoit");
+            logger.WriteToLog("Execution du script autoit");
             Console.WriteLine(paramBaseCial.getName());
 
             ProcessStartInfo startInfo = new ProcessStartInfo();
@@ -140,10 +147,11 @@ namespace Interface_Impression
             process.WaitForExit(); 
 
             int exitCode = process.ExitCode; 
-            process.Kill();
+            //process.Kill();
 
             if (exitCode == 1)
                 {
+                logger.WriteToLog("L'exécution du script autoIT s'est correctement terminé");
                 Console.WriteLine("La tâche a été effectuée avec succès");
                 Console.WriteLine("******** Vérification que les bons de livraison ont bien été imprimés *********");
                 //vérifie que le bon de livraison est bien passé a l'état imprimé dans sage
@@ -165,7 +173,13 @@ namespace Interface_Impression
                         Console.WriteLine($"{numPiece} à été imprimé, supression dans la table...");                                           
                         //Supprimer la table de bon de livraison
                         sqlManager.deleteRow("sog_impression", listCbMarq[compteur].ToString());
-                        Console.WriteLine($"la ligne {listCbMarq[compteur].ToString()} a été supprimé");                      
+                        Console.WriteLine($"la ligne {listCbMarq[compteur].ToString()} a été supprimé de la table");
+                        logger.WriteToLog($"la ligne {listCbMarq[compteur].ToString()} a été supprimé de la table");
+                    }
+                    else
+                    {
+                        logger.WriteToLog($"le bon de livraison DO_Piece: {numPiece}  et CbMarq: { listCbMarq[compteur].ToString()} n'a pas été imprimé");
+                        Console.WriteLine($"le bon de livraison DO_Piece: {numPiece}  et CbMarq: { listCbMarq[compteur].ToString()} n'a pas été imprimé");
                     }
                     compteur++;
                 }               
@@ -173,11 +187,12 @@ namespace Interface_Impression
             else
             {
                 Console.WriteLine("La tâche a échoué avec le code de sortie : " + exitCode);
+                logger.WriteToLog("La script autoit a échoué avec le code de sortie : " + exitCode);  
             }
-
             Console.ReadLine();
             //fermeture de la base de données
             sqlManager.CloseConnexion();
+            logger.WriteToLog("fermeture de la base de données");
         }
     }
 }
