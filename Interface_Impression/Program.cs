@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using IniParser;
 using IniParser.Model;
 using Newtonsoft.Json;
@@ -14,12 +16,7 @@ namespace Interface_Impression
         public static string inifilePath = Path.Combine(Directory.GetCurrentDirectory(), "config.ini");
 
         static void Main(string[] args)
-        {
-            string scriptName = @"C:\Users\Utilisateur\Desktop\projet impression\autoIT\Test.au3";
-            string parameter1 = @"C:\Program Files (x86)\Sage\Gestion commerciale 100c\gecomaes.exe";
-            string parameter2 = @"C:\Users\Utilisateur\Desktop\Projet 1\STOCKSERVICE\STOCKSERVICE.gcm";
-            string autoItPath = "C:\\Program Files (x86)\\AutoIt3\\AutoIt3.exe";
-
+        {          
             //créer le fichier log
             Logger logger = new Logger();
             List<string> listDoc = new List<string>();
@@ -68,138 +65,65 @@ namespace Interface_Impression
            
             Console.ReadLine();
 
-            //Création d'un objet parser pour lire le fichier INI
-            var parser = new FileIniDataParser();
+            /********************************************Main******************************************/
 
-            // Lecture du fichier INI
-            IniData data = parser.ReadFile(inifilePath);
-            logger.WriteToLog("lecture du fichier ini");
-            Console.WriteLine("lecture du fichier ini...");
-            // Récupération des informations de connexion à partir du fichier INI
-            string dbComptaPath = data["DatabaseComptaSage"]["Path"];
-            string dbComptaUser = data["DatabaseComptaSage"]["User"];
-            string dbComptaPwd = data["DatabaseComptaSage"]["Password"];
+            List<AutoItImprim> listImprim = new List<AutoItImprim>();
 
-            string dbCialPath = data["DatabaseCommercialeSage"]["Path"];
-            string dbCialUser = data["DatabaseCommercialeSage"]["User"];
-            string dbCialPwd = data["DatabaseCommercialeSage"]["Password"];
+            Console.WriteLine($" Instaciation des objets d'impressions");
+            // Instanciation des objets AutoIyImprim pour chaque base de données
+            AutoItImprim autoIyImprim1 = new AutoItImprim(inifilePath, new Logger());
+            AutoItImprim autoIyImprim2 = new AutoItImprim(inifilePath, new Logger());
+            AutoItImprim autoIyImprim3 = new AutoItImprim(inifilePath, new Logger());
 
-            string sqlServerName = data["DatabaseSqlServer"]["ServerName"];
-            string sqlServerDb = data["DatabaseSqlServer"]["Database"];
-            string sqlServerUser = data["DatabaseSqlServer"]["User"];
-            string sqlServerPwd = data["DatabaseSqlServer"]["Password"];
+            listImprim.Add(autoIyImprim1);
+            listImprim.Add(autoIyImprim2);
+            listImprim.Add(autoIyImprim3);
 
-            string cheminServeur = data["cheminServeur"]["Path"];
-
-            Console.WriteLine($"INI:{dbComptaPath}, {dbComptaUser}{dbComptaPwd}");
-            Console.ReadLine();
-
-            //connection a la base
-            // Paramètres pour se connecter aux bases
-            ParamDb paramBaseCompta = new ParamDb(dbComptaPath, dbComptaUser, dbComptaPwd);
-            ParamDb paramBaseCial = new ParamDb(dbCialPath, dbCialUser, dbCialPwd);
-
-            /************Connnexion bdd pour requete sql***************/
-            SqlManager sqlManager = new SqlManager(sqlServerName, sqlServerDb, sqlServerUser, sqlServerPwd);
-
-            //Si il y a des documents a imprimé -> processus d'impression
-            if (sqlManager.GetRowCount("sog_impression")!= 0)
-            
+            Console.WriteLine("parcours de la table d'impression de chaque bdd");
+            //vérifie les bases sur laquelle il y a des documents à imprimer
+            foreach(AutoItImprim objAuto in listImprim)
             {
-                //recupere le cbmarque de tout les documents
-                List<object> ListcbMarq = sqlManager.ExecuteQueryToList("select DISTINCT cbMarq from sog_impression");
-
-                //on recupére le numéros de piece de chaque bon de commande
-                foreach (object cbMarq in ListcbMarq)
+                if (objAuto.VerifierTableImpression())
                 {
-                    listDoc.Add(sqlManager.ExecuteSqlQuery("select DO_Piece from F_DOCENTETE where cbMarq =" + cbMarq.ToString()).ToString());
-                    listCbMarq.Add(cbMarq);
-                }
+                    Console.WriteLine($" la table d'impression de la bdd {objAuto.getdbName()} a des éléments a imprimé");
+                    int maxEssais = 10; // nombre maximal d'essais
+                    int delaiEntreEssais = 500; // temps d'attente entre chaque essai en millisecondes
+                    int tempsEcoule = 0; // temps écoulé en millisecondes
+                    bool imprimeTermine = false;
+                    int essaiCourant = 0;
 
-                Console.WriteLine("contenu de la liste listnumDOC:");
-
-                Console.ReadLine();
-                foreach (string s in listDoc)
-                {
-                    Console.WriteLine(s);
-                }
-                Console.ReadLine();
-
-                // Convertir la liste en JSON
-                jsonDoc = JsonConvert.SerializeObject(listDoc);
-                jsonModel = JsonConvert.SerializeObject(listModele);
-
-                Console.ReadLine();
-                Console.WriteLine("Execution du script autoit");
-                logger.WriteToLog("Execution du script autoit");
-                Console.WriteLine(paramBaseCial.getName());
-
-                ProcessStartInfo startInfo = new ProcessStartInfo();
-                startInfo.FileName = autoItPath;
-                //startInfo.Arguments = "\"" + scriptName + "\" \"" + parameter1 + "\" \"" + parameter2 + "\"";
-                startInfo.Arguments = "\"" + scriptName + "\" \"" + parameter1 + "\" \"" + parameter2 + "\" \"" + jsonDoc + "\" \"" + jsonModel + "\" \"" + paramBaseCial.getName() + "\"";
-
-                Process process = new Process();
-                process.StartInfo = startInfo;
-                process.Start();
-
-                // Attendre que le processus AutoIt se termine
-                process.WaitForExit();
-
-                int exitCode = process.ExitCode;
-                //process.Kill();
-
-                if (exitCode == 1)
-                {
-                    logger.WriteToLog("L'exécution du script autoIT s'est correctement terminé");
-                    Console.WriteLine("La tâche a été effectuée avec succès");
-                    Console.WriteLine("******** Vérification que les bons de livraison ont bien été imprimés *********");
-                    //vérifie que le bon de livraison est bien passé a l'état imprimé dans sage
-                    //
-                    int compteur = 0;
-
-                    //parcours des bons de livraison qu'on devait imprimer
-                    foreach (object numPiece in listDoc)
+                    // lancer le processus d'impression 
+                    Console.WriteLine($"***********************lancement du processus d'impression sur la base {objAuto.getdbName()}***********************");
+                    objAuto.ImprimProcess();
+                   //attendre que l'exécution du script retourne true pour passer a la base suivante
+                    while (!imprimeTermine && essaiCourant < maxEssais && tempsEcoule < 30000)
                     {
-                        Console.WriteLine($"num piece:  {numPiece}");
-                        //recupere l'état d'impression d'un document
-                        int doImprim = Convert.ToInt32(sqlManager.ExecuteSqlQuery("SELECT \"DO_Imprim\" FROM F_DOCENTETE WHERE \"DO_Piece\" = '" + numPiece + "'"));
-
-                        //string doImprim = sqlManager.ExecuteSqlQuery("select DO_Imprim from F_DOCENTETE WHERE DO_Piece =" + numPiece);
-                        Console.WriteLine($"état d'impression du document {numPiece}: {doImprim}");
-                        // si = 1 le document a été imprimé
-                        if (doImprim.Equals(1))
+                        imprimeTermine = objAuto.etatImpressionTerminee;
+                        if (!imprimeTermine)
                         {
-                            Console.WriteLine($"{numPiece} à été imprimé, supression dans la table...");
-                            //Supprimer la table de bon de livraison
-                            sqlManager.deleteRow("sog_impression", listCbMarq[compteur].ToString());
-                            Console.WriteLine($"la ligne {listCbMarq[compteur].ToString()} a été supprimé de la table");
-                            logger.WriteToLog($"la ligne {listCbMarq[compteur].ToString()} a été supprimé de la table");
+                            Thread.Sleep(delaiEntreEssais); // attendre avant de réessayer
+                            essaiCourant++;
+                            tempsEcoule += delaiEntreEssais;
                         }
-                        else
-                        {
-                            logger.WriteToLog($"le bon de livraison DO_Piece: {numPiece}  et CbMarq: { listCbMarq[compteur].ToString()} n'a pas été imprimé");
-                            Console.WriteLine($"le bon de livraison DO_Piece: {numPiece}  et CbMarq: { listCbMarq[compteur].ToString()} n'a pas été imprimé");
-                        }
-                        compteur++;
+                       
+                    }
+                    if (imprimeTermine)
+                    {
+                        Console.WriteLine($"fin d'exécution sur la base {objAuto.getdbName()}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"l'exécution sur la base  {objAuto.getdbName()} ne c'est pas terminé, timeout");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("La tâche a échoué avec le code de sortie : " + exitCode);
-                    logger.WriteToLog("La script autoit a échoué avec le code de sortie : " + exitCode);
+                    Console.WriteLine($" la table d'impression de la bdd {objAuto.getdbName()} n'as pas d'élement a imprimer");
                 }
-            }
-            else //cas ou la table d'impression est vide
-            {
-                logger.WriteToLog("aucun document n'a été trouvé dans la table d'impression");
-                Console.WriteLine("aucun document n'a été trouvé dans la table d'impression");
+                           
             }
 
             Console.ReadLine();
-            //fermeture de la base de données
-            sqlManager.CloseConnexion();
-            logger.WriteToLog("fermeture de la base de données");
 
         }
     }

@@ -56,6 +56,7 @@
   <ItemGroup>
     <Compile Include="AutoItImprim.cs" />
     <Compile Include="Logger.cs" />
+    <Compile Include="OldMain.cs" />
     <Compile Include="ParamDb.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
