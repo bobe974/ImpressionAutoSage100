@@ -18,7 +18,7 @@ public class AutoItImprim
     Logger logger = null;
     public bool etatImpressionTerminee { get; set; } = false;
 
-    string scriptName = @"C:\Users\Utilisateur\Desktop\projet impression\autoIT\Test.au3";
+    string scriptName = @"C:\Users\Utilisateur\Desktop\projet impression\autoIT\ImpressionAutoSage100.au3";
     string parameter1 = @"C:\Program Files (x86)\Sage\Gestion commerciale 100c\gecomaes.exe";
     string parameter2 = @"C:\Users\Utilisateur\Desktop\Projet 1\STOCKSERVICE\STOCKSERVICE.gcm"; //TODO INI chemin de la bdd
     string autoItPath = "C:\\Program Files (x86)\\AutoIt3\\AutoIt3.exe";

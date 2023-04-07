@@ -33,7 +33,6 @@ namespace Interface_Impression
 
             if (listImprim.Count != 0)
             {
-
                 Console.WriteLine($"Traitement du fichier ini: {i}");
                 logger.WriteToLog($"Traitement du fichier ini: {i}");
 
@@ -94,7 +93,7 @@ namespace Interface_Impression
                 Console.WriteLine("Aucun fichier ini trouvé");
                 logger.WriteToLog("Aucun fichier ini trouvé");
             }
-
+            
         }
     }
 }
