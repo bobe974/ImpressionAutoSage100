@@ -21,6 +21,7 @@ public class AutoItImprim
     string sageExePath = null; //chemin du .exe du logiciel sage
     string gcmFilePath = null; //fichier .gcm qui fait le lien entre sqlserver et sage
     string autoItPath = null;  //chemin du .exe du logiciel AutoIt
+    string tableImpression = null; //nom de la table qui contient les documents a imprimer
 
     public AutoItImprim(string iniFilePath, Logger logger)
     {
@@ -46,6 +47,7 @@ public class AutoItImprim
         string sqlServerDb = data["DatabaseSqlServer"]["Database"];
         string sqlServerUser = data["DatabaseSqlServer"]["User"];
         string sqlServerPwd = data["DatabaseSqlServer"]["Password"];
+        tableImpression = data["DatabaseSqlServer"]["tableImpression"];
 
         scriptPath = data["AutoIt"]["ScriptPath"];
         autoItPath = data["AutoIt"]["ExeAutoItPath"];
@@ -68,11 +70,11 @@ public class AutoItImprim
     {
         etatImpressionTerminee = false;
         //Si il y a des documents a imprimé -> processus d'impression
-        if (sqlManager.GetRowCount("sog_impression") != 0)
+        if (sqlManager.GetRowCount(tableImpression) != 0)
 
         {
             //recupere le cbmarque de tout les documents
-            List<object> ListcbMarq = sqlManager.ExecuteQueryToList("select DISTINCT cbMarq from sog_impression");
+            List<object> ListcbMarq = sqlManager.ExecuteQueryToList($"select DISTINCT cbMarq from {tableImpression}");
 
             //on recupére le numéros de piece de chaque bon de commande
             foreach (object cbMarq in ListcbMarq)
@@ -138,7 +140,7 @@ public class AutoItImprim
         //notifié que la méthode est terminé
         etatImpressionTerminee = true;
     }
-    public bool VerifierTableImpression() => sqlManager.GetRowCount("sog_impression") != 0;
+    public bool VerifierTableImpression() => sqlManager.GetRowCount(tableImpression) != 0;
 
     public void closeDB()
     {
@@ -173,7 +175,7 @@ public class AutoItImprim
             {
                 Console.WriteLine($"{numPiece} à été imprimé, supression dans la table...");
                 //Supprimer la table de bon de livraison
-                sqlManager.deleteRow("sog_impression", listCbMarq[compteur].ToString());
+                sqlManager.deleteRow(tableImpression, listCbMarq[compteur].ToString());
                 Console.WriteLine($"la ligne {listCbMarq[compteur].ToString()} a été supprimé de la table");
                 logger.WriteToLog($"la ligne {listCbMarq[compteur].ToString()} a été supprimé de la table");
             }

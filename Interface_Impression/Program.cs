@@ -7,7 +7,6 @@ namespace Interface_Impression
 {
     class Program
     {
-
         static void Main(string[] args)
         {
             //créer le fichier log
