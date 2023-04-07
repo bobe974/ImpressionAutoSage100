@@ -9,19 +9,18 @@ using Newtonsoft.Json;
 public class AutoItImprim
 {
     List<string> listDoc = new List<string>();
-    List<string> listModele = new List<string>();
     List<object> listCbMarq = new List<object>();
-    string jsonDoc, jsonModel = null;
+    string jsonDoc = null;
     SqlManager sqlManager = null;
     ParamDb paramBaseCompta = null;
     ParamDb paramBaseCial = null;
     Logger logger = null;
     public bool etatImpressionTerminee { get; set; } = false;
 
-    string scriptName = @"C:\Users\Utilisateur\Desktop\projet impression\autoIT\ImpressionAutoSage100.au3";
-    string parameter1 = @"C:\Program Files (x86)\Sage\Gestion commerciale 100c\gecomaes.exe";
-    string parameter2 = @"C:\Users\Utilisateur\Desktop\Projet 1\STOCKSERVICE\STOCKSERVICE.gcm"; //TODO INI chemin de la bdd
-    string autoItPath = "C:\\Program Files (x86)\\AutoIt3\\AutoIt3.exe";
+    string scriptPath = null;  //chemin du script AutoIt
+    string sageExePath = null; //chemin du .exe du logiciel sage
+    string gcmFilePath = null; //fichier .gcm qui fait le lien entre sqlserver et sage
+    string autoItPath = null;  //chemin du .exe du logiciel AutoIt
 
     public AutoItImprim(string iniFilePath, Logger logger)
     {
@@ -48,7 +47,11 @@ public class AutoItImprim
         string sqlServerUser = data["DatabaseSqlServer"]["User"];
         string sqlServerPwd = data["DatabaseSqlServer"]["Password"];
 
-        string cheminServeur = data["cheminServeur"]["Path"];
+        scriptPath = data["AutoIt"]["ScriptPath"];
+        autoItPath = data["AutoIt"]["ExeAutoItPath"];
+        sageExePath = data["AutoIt"]["ExeSagePath"];
+        gcmFilePath = data["AutoIt"][".gcmFilePath"];
+       
 
         Console.WriteLine($"INI:{dbComptaPath}, {dbComptaUser}{dbComptaPwd}");
 
@@ -88,7 +91,6 @@ public class AutoItImprim
 
             // Convertir la liste en JSON
             jsonDoc = JsonConvert.SerializeObject(listDoc);
-            jsonModel = JsonConvert.SerializeObject(listModele);
 
             Console.WriteLine("Execution du script autoit");
             logger.WriteToLog("Execution du script autoit");
@@ -96,8 +98,9 @@ public class AutoItImprim
 
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.FileName = autoItPath;
-            //startInfo.Arguments = "\"" + scriptName + "\" \"" + parameter1 + "\" \"" + parameter2 + "\"";
-            startInfo.Arguments = "\"" + scriptName + "\" \"" + parameter1 + "\" \"" + parameter2 + "\" \"" + jsonDoc + "\" \"" + jsonModel + "\" \"" + paramBaseCial.getName() + "\"";
+
+            // le sageExePath est le premier element récupéré dans le script autoit...
+            startInfo.Arguments = "\"" + scriptPath + "\" \"" + sageExePath + "\" \"" + gcmFilePath + "\" \"" + jsonDoc + "\" \"" + paramBaseCial.getName() + "\"";
 
             Process process = new Process();
             process.StartInfo = startInfo;

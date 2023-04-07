@@ -15,11 +15,12 @@ namespace Interface_Impression
             //lecture du fichier INI pour charger les infos de connexion
             logger.WriteToLog("*************************************************************");
             logger.WriteToLog("Début du programme");
+            Console.WriteLine(Directory.GetCurrentDirectory());
 
             //lecture de tout les fichiers ini dans le repertoire actuelle
             string directory = Directory.GetCurrentDirectory();
             List<AutoItImprim> listImprim = new List<AutoItImprim>();
-            Console.WriteLine($" Instaciation des objets d'impressions");
+            Console.WriteLine($" Instanciation des objets d'impressions");
             int i = 0;
 
             foreach (string filePath in Directory.GetFiles(directory, "*.ini"))
@@ -33,8 +34,8 @@ namespace Interface_Impression
 
             if (listImprim.Count != 0)
             {
-                Console.WriteLine($"Traitement du fichier ini: {i}");
-                logger.WriteToLog($"Traitement du fichier ini: {i}");
+                Console.WriteLine($"Traitement du fichier ini numero: {i}");
+                logger.WriteToLog($"Traitement du fichier ini numero: {i}");
 
                 Console.ReadLine();
 
