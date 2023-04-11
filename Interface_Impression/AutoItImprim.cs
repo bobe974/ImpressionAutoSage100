@@ -58,7 +58,7 @@ public class AutoItImprim
         Console.WriteLine($"INI:{dbComptaPath}, {dbComptaUser}{dbComptaPwd}");
 
         //connection a la base
-        // Paramètres pour se connecter aux bases
+        //paramètres pour se connecter aux bases
         paramBaseCompta = new ParamDb(dbComptaPath, dbComptaUser, dbComptaPwd);
         paramBaseCial = new ParamDb(dbCialPath, dbCialUser, dbCialPwd);
 

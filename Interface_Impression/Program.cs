@@ -63,7 +63,7 @@ namespace Interface_Impression
                             imprimeTermine = objAuto.etatImpressionTerminee;
                             if (!imprimeTermine)
                             {
-                                Thread.Sleep(delaiEntreEssais); // attendre avant de réessayer
+                                Thread.Sleep(delaiEntreEssais); 
                                 essaiCourant++;
                                 tempsEcoule += delaiEntreEssais;
                             }
