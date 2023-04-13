@@ -91,7 +91,7 @@ public class AutoItImprim
                 Console.WriteLine(s);
             }
 
-            // Convertir la liste en JSON
+            // Convertir la liste en JSON, nécéssaire pour envoyer les données au script autoit...
             jsonDoc = JsonConvert.SerializeObject(listDoc);
 
             Console.WriteLine("Execution du script autoit");
@@ -108,7 +108,7 @@ public class AutoItImprim
             process.StartInfo = startInfo;
             process.Start();
 
-            // Attendre que le processus AutoIt se termine
+            //attendre que le processus AutoIt se termine
             process.WaitForExit();
 
             int exitCode = process.ExitCode;
@@ -125,7 +125,7 @@ public class AutoItImprim
                 logger.WriteToLog("La script autoit a échoué avec le code de sortie : " + exitCode);
             }
 
-            // on vérifie si le script imprimé des documents, meme en cas d'erreurs et si oui, on supprime ces documents de la table d'impression
+            // on vérifie si le script imprimé des documents, si oui, on supprime ces documents de la table d'impression
             VérificationDesDocummentImprimés();
         }
         else //cas ou la table d'impression est vide

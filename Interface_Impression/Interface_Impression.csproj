@@ -65,6 +65,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="script\ImpressionAutoSagev1.2.au3" />
     <None Include="script\ImpressionAutoSagev1.1.au3" />
     <None Include="script\ImpressionAutoSagev1.0.au3" />
     <None Include="packages.config" />
