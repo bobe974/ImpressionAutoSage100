@@ -45,19 +45,29 @@ namespace Interface_Impression
             {
                 SqlCommand command = new SqlCommand(query, connection);
 
-                using (SqlDataReader reader = command.ExecuteReader())
+                try
                 {
-                    while (reader.Read())
+                    using (SqlDataReader reader = command.ExecuteReader())
                     {
-                        modele = reader.GetValue(0);
+                        while (reader.Read())
+                        {
+                            modele = reader.GetValue(0);
+                        }
                     }
+                    return modele;
                 }
-                return modele;
+                catch (Exception ex)
+                {
+                    string message = "Une erreur s'est produite lors de l'exécution de la requête SQL : " + ex.Message;
+                    log.WriteToLog(message);
+                    return modele;
+                }
             }
             else
             {
-                throw new Exception("La connexion n'est pas ouverte.");
-                log.WriteToLog("impossible d'excuter la requete sql: La connexion n'est pas ouverte.");
+                string message = "La connexion n'est pas ouverte.";
+                log.WriteToLog(message);
+                return modele;
             }
         }
 
@@ -97,6 +107,9 @@ namespace Interface_Impression
                 String query = "DELETE FROM " + table + " WHERE cbMarq = " + cbMarq;
                 SqlCommand command = new SqlCommand(query, connection);
                 command.ExecuteNonQuery(); // Execute la suppression
+                Console.WriteLine("");
+                Console.WriteLine("************suppresion de la ligne avec cbMarq =" + cbMarq + "************");
+                log.WriteToLog("suppresion de la ligne avec cbMarq =" + cbMarq);
             }
             else
             {
@@ -108,7 +121,7 @@ namespace Interface_Impression
         public int GetRowCount(string table)
         {
             int rowCount = 0;
-
+           
             if (connection != null && connection.State == ConnectionState.Open)
             {
                 string query = "SELECT COUNT(*) FROM "+ table;

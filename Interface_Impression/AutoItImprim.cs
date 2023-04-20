@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using IniParser;
 using IniParser.Model;
 using Interface_Impression;
@@ -15,6 +16,7 @@ public class AutoItImprim
     ParamDb paramBaseCompta = null;
     ParamDb paramBaseCial = null;
     Logger logger = null;
+
     public bool etatImpressionTerminee { get; set; } = false;
 
     string scriptPath = null;  //chemin du script AutoIt
@@ -25,15 +27,14 @@ public class AutoItImprim
 
     public AutoItImprim(string iniFilePath, Logger logger)
     {
-
         this.logger = logger;
         //Création d'un objet parser pour lire le fichier INI
         var parser = new FileIniDataParser();
 
         // Lecture du fichier INI
         IniData data = parser.ReadFile(iniFilePath);
-        logger.WriteToLog("lecture du fichier ini");
-        Console.WriteLine("lecture du fichier ini...");
+        logger.WriteToLog($"lecture du fichier ini");
+        Console.WriteLine($"lecture du fichier ini");
         // Récupération des informations de connexion à partir du fichier INI
         string dbComptaPath = data["DatabaseComptaSage"]["Path"];
         string dbComptaUser = data["DatabaseComptaSage"]["User"];
@@ -79,66 +80,87 @@ public class AutoItImprim
             //on recupére le numéros de piece de chaque bon de commande
             foreach (object cbMarq in ListcbMarq)
             {
-                Console.WriteLine(cbMarq);
-                listDoc.Add(sqlManager.ExecuteSqlQuery("select DO_Piece from F_DOCENTETE where cbMarq =" + cbMarq.ToString()).ToString());
-                listCbMarq.Add(cbMarq);
+                string req = "select DO_Piece from F_DOCENTETE where cbMarq =" + cbMarq.ToString();
+
+                try {
+
+                    string doPiece = null;
+                    //cas ou la requete ne retourne pas de doPiece 
+                    if (!sqlManager.ExecuteSqlQuery(req).Equals(null))
+                    {
+                         doPiece = sqlManager.ExecuteSqlQuery(req).ToString();
+                        listDoc.Add(doPiece);
+                        listCbMarq.Add(cbMarq);
+                    }
+
+                } catch(Exception e)
+                {
+                    Console.WriteLine($"Erreur lors de la requete sql {req} : {e}");
+                    logger.WriteToLog($"Erreur lors de la requete sql {req} : {e}");
+                    //supprime de la table l'occurence dont aucun numéro de piece n'a été" trouvé depuis le champs cbMarq
+                    sqlManager.deleteRow(tableImpression, cbMarq.ToString());
+                }        
             }
 
-            Console.WriteLine("contenu de la liste listnumDOC:");
-
+            //afficher les bl à imprimer
+            Console.WriteLine("contenu de la liste des BL à imprimer:");
             foreach (string s in listDoc)
             {
                 Console.WriteLine(s);
             }
 
-            // Convertir la liste en JSON, nécéssaire pour envoyer les données au script autoit...
-            jsonDoc = JsonConvert.SerializeObject(listDoc);
-
-            Console.WriteLine("Execution du script autoit");
-            logger.WriteToLog("Execution du script autoit");
-            Console.WriteLine(paramBaseCial.getName());
-
-            ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.FileName = autoItPath;
-
-            // le sageExePath est le premier element récupéré dans le script autoit...
-            startInfo.Arguments = "\"" + scriptPath + "\" \"" + sageExePath + "\" \"" + gcmFilePath + "\" \"" + jsonDoc + "\" \"" + paramBaseCial.getName() + "\"";
-
-            Process process = new Process();
-            process.StartInfo = startInfo;
-            process.Start();
-
-            //attendre que le processus AutoIt se termine
-            process.WaitForExit();
-
-            int exitCode = process.ExitCode;
-            //process.Kill();
-
-            if (exitCode == 1)
+            if (!listDoc.Count.Equals(0))
             {
-                logger.WriteToLog("L'exécution du script autoIT s'est correctement terminé");
-                Console.WriteLine("La tâche a été effectuée avec succès");
+                // Convertir la liste en JSON, nécéssaire pour envoyer les données au script autoit...
+                jsonDoc = JsonConvert.SerializeObject(listDoc);
+
+                Console.WriteLine("Execution du script autoit");
+                logger.WriteToLog("Execution du script autoit");
+                Console.WriteLine(paramBaseCial.getName());
+
+                ProcessStartInfo startInfo = new ProcessStartInfo();
+                startInfo.FileName = autoItPath;
+
+                // le sageExePath est le premier element récupéré dans le script autoit...
+                startInfo.Arguments = "\"" + scriptPath + "\" \"" + sageExePath + "\" \"" + gcmFilePath + "\" \"" + jsonDoc + "\" \"" + paramBaseCial.getName() + "\"";
+
+                Process process = new Process();
+                process.StartInfo = startInfo;
+                process.Start();
+
+                //attendre que le processus AutoIt se termine
+                process.WaitForExit();
+
+                int exitCode = process.ExitCode;
+                //process.Kill();
+
+                if (exitCode == 1)
+                {
+                    logger.WriteToLog("L'exécution du script autoIT s'est correctement terminé");
+                    Console.WriteLine("L'exécution du script autoIT s'est correctement terminé");
+                }
+                else
+                {
+                    Console.WriteLine("La script autoit a échoué avec le code de sortie : : " + exitCode);
+                    logger.WriteToLog("La script autoit a échoué avec le code de sortie : " + exitCode);
+                }
+
+                // on vérifie si le script imprimé des documents, si oui, on supprime ces documents de la table d'impression
+                VérificationDesDocummentImprimés();
             }
-            else
+            else //cas ou la table d'impression est vide
             {
-                Console.WriteLine("La tâche a échoué avec le code de sortie : " + exitCode);
-                logger.WriteToLog("La script autoit a échoué avec le code de sortie : " + exitCode);
+                logger.WriteToLog("aucun document n'a été trouvé dans la table d'impression");
+                Console.WriteLine("aucun document n'a été trouvé dans la table d'impression");
             }
 
-            // on vérifie si le script imprimé des documents, si oui, on supprime ces documents de la table d'impression
-            VérificationDesDocummentImprimés();
+            //fermeture de la base de données
+            sqlManager.CloseConnexion();
+            logger.WriteToLog("fermeture de la base de données");
+            //notifié que la méthode est terminé
+            etatImpressionTerminee = true;
         }
-        else //cas ou la table d'impression est vide
-        {
-            logger.WriteToLog("aucun document n'a été trouvé dans la table d'impression");
-            Console.WriteLine("aucun document n'a été trouvé dans la table d'impression");
-        }
-
-        //fermeture de la base de données
-        sqlManager.CloseConnexion();
-        logger.WriteToLog("fermeture de la base de données");
-        //notifié que la méthode est terminé
-        etatImpressionTerminee = true;
+        
     }
     public bool VerifierTableImpression() => sqlManager.GetRowCount(tableImpression) != 0;
 
@@ -153,7 +175,8 @@ public class AutoItImprim
     }
 
     /**
-     * vérifie que les documents on bien été imprimés et si c'es le cas on les supprime de la table d'impression
+     * 1 vérifie que les documents on bien été imprimés et si c'es le cas on les supprime de la table d'impression
+     * 2 ajoute dans un fichier les documents non imprimés
      */
     public bool VérificationDesDocummentImprimés()
     {
@@ -178,11 +201,14 @@ public class AutoItImprim
                 sqlManager.deleteRow(tableImpression, listCbMarq[compteur].ToString());
                 Console.WriteLine($"la ligne {listCbMarq[compteur].ToString()} a été supprimé de la table");
                 logger.WriteToLog($"la ligne {listCbMarq[compteur].ToString()} a été supprimé de la table");
+
             }
             else
             {
                 logger.WriteToLog($"le bon de livraison DO_Piece: {numPiece}  et CbMarq: { listCbMarq[compteur].ToString()} n'a pas été imprimé");
                 Console.WriteLine($"le bon de livraison DO_Piece: {numPiece}  et CbMarq: { listCbMarq[compteur].ToString()} n'a pas été imprimé");
+                //ajout dans le fichier des fichier non imprimer
+
                 isPrinted = false;
             }
             compteur++;

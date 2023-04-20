@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace Interface_Impression
 {
@@ -16,6 +14,21 @@ namespace Interface_Impression
         public Logger()
         {
             // Vérifier si le fichier de log existe déjà
+            if (!File.Exists(logFilePath))
+            {
+                // Créer un nouveau fichier de log
+                using (TextWriterTraceListener listener = new TextWriterTraceListener(logFilePath))
+                {
+                    Trace.Listeners.Add(listener);
+                    WriteToLog("Création du log");
+                }
+            }
+        }
+
+        public Logger(String filePath)
+        {
+            this.logFilePath = filePath;
+
             if (!File.Exists(logFilePath))
             {
                 // Créer un nouveau fichier de log
@@ -48,5 +61,21 @@ namespace Interface_Impression
                 listener.Close();
             }
         }
+
+        public void WriteToFile(string content)
+        {
+            // Vérification des arguments
+            if (string.IsNullOrEmpty(logFilePath))
+                throw new ArgumentException("Le chemin de destination ne peut pas être null ou vide.");
+            if (string.IsNullOrEmpty(content))
+                throw new ArgumentException("Le contenu ne peut pas être null ou vide.");
+
+            // Écriture du contenu dans le fichier texte
+            using (StreamWriter writer = new StreamWriter(logFilePath))
+            {
+                writer.Write(content.Replace("\n", Environment.NewLine));
+            }
+        }
+
     }
 }

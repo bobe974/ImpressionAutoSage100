@@ -30,7 +30,6 @@ namespace Interface_Impression
         public String getName()
         {
             string fileName = Path.GetFileNameWithoutExtension(dbPath);
-            Console.WriteLine("filename: " + fileName);
             return fileName;
         }
     }
