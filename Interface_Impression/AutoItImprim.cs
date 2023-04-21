@@ -1,11 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using IniParser;
 using IniParser.Model;
 using Interface_Impression;
 using Newtonsoft.Json;
+
+/*
+ * Nom de la classe : AutoItImprim
+ * Description : Classe pour lancer et  intéragir avec le script AutoIT et vérifier que les documents on été imprimés
+ * Auteur : Etienne Baillif
+ * Date de création : 21/04/2023
+ */
 
 public class AutoItImprim
 {

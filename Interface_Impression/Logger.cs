@@ -1,8 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 
+/*
+ * Nom de la classe : Logger
+ * Description : Créer et écrire dans un fichier log 
+ * Auteur : Etienne Baillif
+ * Date de création : 21/04/2023
+ */
 
 namespace Interface_Impression
 {

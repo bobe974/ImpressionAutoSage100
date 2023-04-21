@@ -3,13 +3,20 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 
+/*
+ * Nom de la classe : Program
+ * Description : Point d'entrée du programme -> 
+ * Lecture des fichiers INI et vérifie toutes les x secondes si il y a des documents à imprimer.
+ * Lance le processus d'impression sur chaque base de données trouvé dans les fichiers INI
+ * Auteur : Etienne Baillif
+ * Date de création : DateDeCreation
+ */
 namespace Interface_Impression
 {
     class Program
     {
         static void Main(string[] args)
         {
-
             Console.WriteLine(Directory.GetCurrentDirectory());
 
             // Boucle infinie qui répète le processus toutes les 20 secondes
@@ -18,6 +25,7 @@ namespace Interface_Impression
                 //créer le fichier log
                 Logger logger = new Logger();
                 //lecture du fichier INI pour charger les infos de connexion
+                logger.WriteToLog("");
                 logger.WriteToLog("*****************************************Début de la vérification**************************************************");
                 Console.WriteLine("");
                 Console.WriteLine("*****************************************Début de la vérification**************************************************");
@@ -35,6 +43,7 @@ namespace Interface_Impression
                         try {
                             Console.WriteLine("");
                             Console.WriteLine($"Traitement du fichier ini numero: {i + 1}");
+                            logger.WriteToLog("");
                             logger.WriteToLog($"Traitement du fichier ini numero: {i + 1}");
                             listImprim.Add(new AutoItImprim(filePath, logger));
                         }
@@ -48,7 +57,6 @@ namespace Interface_Impression
 
                 if (listImprim.Count != 0)
                 {
-
 
                     /********************************************Main******************************************/
 
@@ -110,6 +118,7 @@ namespace Interface_Impression
                 }
 
                 // Attendre 20 secondes
+                logger.WriteToLog("");
                 logger.WriteToLog("*****************************************Prochaine vérification dans 20s*******************************************");
                 Console.WriteLine("");
                 Console.WriteLine("*****************************************Prochaine vérification dans 20s*******************************************");

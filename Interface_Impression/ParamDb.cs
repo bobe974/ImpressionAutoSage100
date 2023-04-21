@@ -1,9 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
+﻿
+using System;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
+/*
+ * Nom de la classe : ParamDb
+ * Description : Structure pour la connexion a une base de données
+ * Auteur : Etienne Baillif
+ * Date de création : 21/04/2023
+ */
 
 namespace Interface_Impression
 {

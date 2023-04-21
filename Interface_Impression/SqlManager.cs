@@ -3,17 +3,23 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Data;
 
+/*
+ * Nom de la classe : SqlManager
+ * Description : Classe pour se connecter et interragir avec une base de données 
+ * Auteur : Etienne Baillif
+ * Date de création : 21/04/2023
+ */
 namespace Interface_Impression
 {
     class SqlManager : IDisposable
     {
-        SqlConnection connection;
+        SqlConnection connection; 
         Logger log = new Logger();
 
         public SqlManager(string serverName, string database, string username, string pwd)
         {
-            string connectionString = "Data Source=" + serverName + ";Initial Catalog=" + database + ";User ID=" + username + ";Password=" + pwd;
-            //string connectionString = "Data Source=" + serverName + ";Initial Catalog=" + database + ";Integrated Security=SSPI";
+            //string connectionString = "Data Source=" + serverName + ";Initial Catalog=" + database + ";User ID=" + username + ";Password=" + pwd;
+            string connectionString = "Data Source=" + serverName + ";Initial Catalog=" + database + ";Integrated Security=SSPI";
             connection = new SqlConnection(connectionString);
             try
             {
