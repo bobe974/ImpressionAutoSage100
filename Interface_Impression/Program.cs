@@ -9,7 +9,8 @@ using System.Threading;
  * Lecture des fichiers INI et vérifie toutes les x secondes si il y a des documents à imprimer.
  * Lance le processus d'impression sur chaque base de données trouvé dans les fichiers INI
  * Auteur : Etienne Baillif
- * Date de création : DateDeCreation
+ * Date de création : 24/03/2023
+ * Date de modif: 28/06/23
  */
 namespace Interface_Impression
 {
@@ -66,32 +67,29 @@ namespace Interface_Impression
                         if (objAuto.VerifierTableImpression())
                         {
                             Console.WriteLine($" la table d'impression de la bdd {objAuto.getdbName()} contient des éléments à imprimer");
-                            int maxEssais = 10; // nombre maximal d'essais
+                          
                             int delaiEntreEssais = 500; // temps d'attente entre chaque essai en millisecondes
-                            int tempsEcoule = 0; // temps écoulé en millisecondes
                             bool imprimeTermine = false;
-                            int essaiCourant = 0; 
+              
 
                             // lancer le processus d'impression 
                             Console.WriteLine("");
                             Console.WriteLine($"***********************lancement du processus d'impression sur la base {objAuto.getdbName()}***********************");
+                            logger.WriteToLog("");
+                            logger.WriteToLog($"***********************lancement du processus d'impression sur la base {objAuto.getdbName()}***********************");
                             objAuto.ImprimProcess();
 
                             //attendre que l'exécution du script retourne true pour passer a la base suivante
                             while (!imprimeTermine)                                                                 
                             {
-                                imprimeTermine = objAuto.etatImpressionTerminee;
-                                if (!imprimeTermine)
-                                {
-                                    Thread.Sleep(delaiEntreEssais);
-                                    essaiCourant++;
-                                    tempsEcoule += delaiEntreEssais;
-                                }
+                                imprimeTermine = objAuto.etatImpressionTerminee;                             
+                                Thread.Sleep(delaiEntreEssais);                                                            
+                                
                             }
                             if (imprimeTermine)
                             {
-                                Console.WriteLine($"fin d'exécution sur la base {objAuto.getdbName()}");
-                                logger.WriteToLog($"fin d'exécution sur la base {objAuto.getdbName()}");
+                                Console.WriteLine($"fin d'exécution du script sur la base {objAuto.getdbName()}");
+                                logger.WriteToLog($"fin d'exécution du script sur la base {objAuto.getdbName()}");
                             }
                             else
                             {
@@ -101,15 +99,15 @@ namespace Interface_Impression
 
                             Console.WriteLine("");
                             Console.WriteLine($"***********************Fin du processus d'impression sur {objAuto.getdbName()}***********************");
+                            logger.WriteToLog("");
+                            logger.WriteToLog($"***********************Fin du processus d'impression sur {objAuto.getdbName()}***********************");
                         }
                         else
                         {
                             Console.WriteLine($" la table d'impression de la bdd {objAuto.getdbName()} n'as pas d'élement a imprimé");
                             logger.WriteToLog($" la table d'impression de la bdd {objAuto.getdbName()} n'as pas d'élement a imprimé");
-                        }
-                        
+                        }                       
                     }
-
                 }
                 else
                 {

@@ -77,6 +77,64 @@ namespace Interface_Impression
             }
         }
 
+        public bool ExeSqlQuery(string query)
+        {
+            if (connection != null && connection.State == ConnectionState.Open)
+            {
+                SqlCommand command = new SqlCommand(query, connection);
+
+                try
+                {
+                    command.ExecuteNonQuery();
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    string message = "Une erreur s'est produite lors de l'exécution de la requête SQL : " + ex.Message;
+                    log.WriteToLog(message);
+                    return false;
+                }
+            }
+            else
+            {
+                string message = "La connexion n'est pas ouverte.";
+                log.WriteToLog(message);
+                return false;
+            }
+        }
+
+
+        public bool ExecuteStoredProcedure(string storedProcedureName)
+        {
+            bool success = false;
+
+            if (connection != null && connection.State == ConnectionState.Open)
+            {
+                SqlCommand command = new SqlCommand(storedProcedureName, connection);
+                command.CommandType = CommandType.StoredProcedure;
+
+                try
+                {
+                    command.ExecuteNonQuery();
+                    success = true;
+                }
+                catch (Exception ex)
+                {
+                    string message = "Une erreur s'est produite lors de l'exécution de la procédure stockée : " + ex.Message;
+                    log.WriteToLog(message);
+                }
+            }
+            else
+            {
+                string message = "La connexion n'est pas ouverte.";
+                log.WriteToLog(message);
+            }
+
+            return success;
+        }
+
+
+
         /**
          * exectute la requete et retourne les elements du premier champ dans une liste
          */
